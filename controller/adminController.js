@@ -120,4 +120,4 @@ async function getProductById(req, res) {
   }
 }
 
-module.exports={adminLogin,getUsers,getUserById,getAllProducts,getByCategory,getProductById};
+module.exports={adminLogin,getUsers,getUserById,getAllProducts,getByCategory,getProductById}
