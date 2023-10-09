@@ -54,7 +54,7 @@ async function addToCart(req, res) {
     if (result.length === 0) {
       const update = await Users.updateOne(
         { _id: req.user.id },
-        { $push: { cart: product } }
+        { $push: { cart: product._id } }
       );
       if (update.modifiedCount === 1) {
         res.sendStatus(200);
@@ -73,8 +73,8 @@ async function addToCart(req, res) {
 
 async function viewCart(req, res) {
   try {
-    const user = await Users.findOne({ _id: req.user.id });
-    res.send(user.cart);
+    const userdetail = await Users.findOne({ _id: req.user.id }).populate("cart")
+    res.send(userdetail.cart);
   } catch (e) {
     res.status(500).send(e);
   }
@@ -145,3 +145,6 @@ module.exports = {
   viewCart,
   viewWishList,
 };
+
+
+

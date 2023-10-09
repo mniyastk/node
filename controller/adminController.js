@@ -170,6 +170,25 @@ async function updatePoduct(req, res) {
   }
 }
 
+/// Delete a Product ///
+
+async function deleteProduct (req,res) {
+
+  const id = req.params.id;
+
+try {
+  await Products.deleteOne({_id:id})
+  res.json({
+    status: 'success',
+    message: 'Successfully deleted a product.',
+    })
+} catch (error) {
+  
+  res.send(error)
+}
+
+}
+
 module.exports = {
   adminLogin,
   getUsers,
@@ -178,5 +197,6 @@ module.exports = {
   getByCategory,
   getProductById,
   addProduct,
-  updatePoduct
+  updatePoduct,
+  deleteProduct
 };

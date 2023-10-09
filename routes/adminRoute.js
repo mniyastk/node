@@ -10,6 +10,7 @@ const {
   getProductById,
   addProduct,
   updatePoduct,
+  deleteProduct
 } = require("../controller/adminController");
 
 router.post("/adminLogin", adminLogin);
@@ -20,5 +21,5 @@ router.get("/admin/products?", adminAuth, getByCategory);
 router.get("/admin/products/:id", adminAuth, getProductById);
 router.post("/admin/products", adminAuth, multer.single("niyas"), addProduct);
 router.put("/admin/products/:id",adminAuth,multer.single("niyas"),updatePoduct);
-
+router.delete("/admin/products/:id",adminAuth,deleteProduct)
 module.exports = router;
