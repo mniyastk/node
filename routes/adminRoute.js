@@ -13,6 +13,7 @@ const {
   deleteProduct
 } = require("../controller/adminController");
 
+
 router.post("/adminLogin", adminLogin);
 router.get("/admin/users", adminAuth, getUsers);
 router.get("/admin/users/:id", adminAuth, getUserById);

@@ -4,124 +4,129 @@ const User = require("../models/userSchema");
 const Products = require("../models/productSchema");
 const bcrypt = require("bcrypt");
 const cloudinary = require("../cloudinary");
+const ErrorClass = require("../helpers/classErrors");
+const asyncErrorHandler = require("../helpers/asyncErrorHandler");
 require("dotenv").config();
 
 /// admin Login ///
 
-async function adminLogin(req, res) {
+const adminLogin = asyncErrorHandler(async function (req, res, next) {
   const { adminName, password } = req.body;
-  try {
-    const adminstrator = await admin.findOne({ adminName });
-    if (
-      adminstrator &&
-      (await bcrypt.compare(password, adminstrator.password))
-    ) {
-      const token = jwt.sign(
-        {
-          id: adminstrator._id,
-          admin: adminstrator.adminName,
-        },
-        process.env.ADMIN_SECRET,
-        {
-          expiresIn: "1h",
-        }
-      );
-      res.status(200).json({
-        status: "success",
-        message: "Successfully logged In.",
-        data: token,
-      });
-    } else {
-      res.status(401).send("Incorrect username or password");
-    }
-  } catch (e) {
-    res.status(401).send(`User does not exist: ${e}`);
+
+  const adminstrator = await admin.findOne({ adminName });
+
+  if (adminstrator && (await bcrypt.compare(password, adminstrator.password))) {
+    const token = jwt.sign(
+      {
+        id: adminstrator._id,
+        admin: adminstrator.adminName,
+      },
+      process.env.ADMIN_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+    res.status(200).json({
+      status: "success",
+      message: "Successfully logged In.",
+      data: token,
+    });
+  } else {
+    const err = new ErrorClass("Incorrect Username or Password", 401);
+
+    return next(err);
   }
-}
+});
 
 /// view all users ///
 
-async function getUsers(req, res) {
-  try {
-    const users = await User.find();
-    res.status(200).json({
-      status: "success",
-      message: "Successfully fetched user datas.",
-      data: users,
-    });
-  } catch (e) {
-    res.send(e);
+const getUsers = asyncErrorHandler(async function (req, res, next) {
+  const users = await User.find();
+  if (users.length === 0) {
+    const err = new ErrorClass("Users does not exist", 404);
+    return next(err);
   }
-}
-
+  res.status(200).json({
+    status: "success",
+    message: "Successfully fetched user datas.",
+    data: users,
+  });
+});
 /// view a specific user ///
 
-async function getUserById(req, res) {
+const getUserById = asyncErrorHandler(async function (req, res, next) {
   const id = req.params.id;
-  try {
-    const user = await User.findOne({ _id: id });
-    res.status(200).json({
-      status: "success",
-      message: "Successfully fetched user data.",
-      data: user,
-    });
-  } catch (error) {
-    res.send(error);
+  const selectedUser = await User.findOne({ _id: id });
+  if (!selectedUser) {
+    const err = new ErrorClass("user does not exist by this id ", 404);
+    return next(err);
   }
-}
 
+  res.status(200).json({
+    status: "success",
+    message: "Successfully fetched user data.",
+    data: selectedUser,
+  });
+});
 /// view all products ///
 
-async function getAllProducts(req, res) {
-  try {
-    const product = await Products.find();
-    res.status(200).json({
-      status: "success",
-      message: "Successfully fetched products detail.",
-      data: product,
-    });
-  } catch (e) {
-    res.send(`An error Ocuured during fetching products : ${e}`);
+const getAllProducts = asyncErrorHandler(async function (req, res, next) {
+  const product = await Products.find();
+  if (product.length === 0) {
+    const err = new ErrorClass("Products not found");
+    return next(err);
   }
-}
 
+  res.status(200).json({
+    status: "success",
+    message: "Successfully fetched products detail.",
+    data: product,
+  });
+});
 /// get products by category using query methode ///
 
-async function getByCategory(req, res) {
+const getByCategory = asyncErrorHandler(async function (req, res, next) {
   const id = req.query.id;
-  try {
-    const products = await Products.find({ category: id });
-    res.status(200).json({
-      status: "success",
-      message: "Successfully fetched products .",
-      data: products,
-    });
-  } catch (error) {
-    res.send(error);
-  }
-}
 
+  const products = await Products.find({ category: id });
+  if (products.length === 0) {
+    const err = new ErrorClass("products by the category does not Found", 404);
+    return next(err);
+  }
+  res.status(200).json({
+    status: "success",
+    message: "Successfully fetched products .",
+    data: products,
+  });
+});
 /// Get a specific Product ///
 
-async function getProductById(req, res) {
+const getProductById =asyncErrorHandler(async function (req, res,next) {
   const id = req.params.id;
-  try {
-    const currentProduct = await Products.findOne({ _id: id });
+  const currentProduct = await Products.findById(id);
+ if(!currentProduct){
+  const err = new ErrorClass('product with that id does not exist',404)
+  return next(err)
+ }
+   
     res.status(200).json({
       status: "success",
       message: "Successfully fetched product details.",
       data: currentProduct,
     });
-  } catch (error) {
-    res.send(error);
-  }
-}
 
+}
+)
 /// Add a new product ///
-async function addProduct(req, res) {
+
+const addProduct= asyncErrorHandler(async function (req, res,next) {
   const { title, category, productName, price, productDescription } = req.body;
-  try {
+  
+
     const uploads = await cloudinary.uploader.upload(req.file.path);
+    if(!uploads){
+      const error = new ErrorClass('image upload to cloud failed' ,400)
+    }
     const add = await Products.create({
       title,
       category,
@@ -130,23 +135,26 @@ async function addProduct(req, res) {
       price,
       productDescription,
     });
+    if(!add){
+      const err = new ErrorClass('could not add a Product',400)
+      return next(err)
+    }
     res.status(201).json({
       status: "success",
       message: "Successfully created a product.",
       data: add,
+      message:uploads
     });
-  } catch (error) {
-    res.send(error);
-  }
-}
 
+}
+)
 /// Update a product ///
 
-async function updatePoduct(req, res) {
+const updatePoduct =asyncErrorHandler(async function (req, res,next) {
   const id = req.params.id;
   const { title, category, productName, price, productDescription } = req.body;
-  try {
     const uploads = await cloudinary.uploader.upload(req.file.path);
+
     const product = await Products.updateOne(
       { _id: id },
       {
@@ -160,35 +168,38 @@ async function updatePoduct(req, res) {
         },
       }
     );
-    res.json({
-      status: 'success',
-      message: 'Successfully updated a product.',
-      data : product
-      })
-  } catch (error) {
-    res.send(error)
-  }
-}
+    if(product.modifiedCount===0){
+      const err = new ErrorClass('product could not be found',404)
+      return next(err)
 
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Successfully updated a product.",
+      data: product,
+    });
+
+}
+)
 /// Delete a Product ///
 
-async function deleteProduct (req,res) {
-
+const deleteProduct= asyncErrorHandler(async function (req, res,next) {
   const id = req.params.id;
 
-try {
-  await Products.deleteOne({_id:id})
-  res.json({
-    status: 'success',
-    message: 'Successfully deleted a product.',
-    })
-} catch (error) {
   
-  res.send(error)
+    const result = await Products.deleteOne({ _id: id });
+if(result.deletedCount===0){
+  const err = new ErrorClass('product does not Exist ' ,404)
+  return next(err)
 }
+    res.json({
+      status: "success",
+      message: "Successfully deleted a product.",
+      data:result
+    });
 
 }
-
+)
 module.exports = {
   adminLogin,
   getUsers,
@@ -198,5 +209,5 @@ module.exports = {
   getProductById,
   addProduct,
   updatePoduct,
-  deleteProduct
+  deleteProduct,
 };

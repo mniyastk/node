@@ -10,7 +10,9 @@ const {
   dltWishList,
   viewCart,
   viewWishList,
+  invalidRoute,
 } = require("../controller/productsController");
+
 
 router.get('/products',getAllProducts);
 router.get("/products/:id",getProductById);
@@ -20,7 +22,6 @@ router.get('/:id/cart',auth,viewCart);
 router.post('/:id/wishlists',auth,addToWishist);
 router.get('/:id/wishlists',auth,viewWishList);
 router.delete('/:id/wishlists',auth,dltWishList)
-
-
+router.all('*',invalidRoute)
 module.exports = router;
 

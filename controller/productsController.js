@@ -1,138 +1,154 @@
+const ErrorClass = require("../helpers/classErrors.js");
 const Products = require("../models/productSchema.js");
 const Users = require("../models/userSchema.js");
+const asyncErrorHandler = require("../helpers/asyncErrorHandler");
 
 /// Get All Products ///
 
-async function getAllProducts(req, res) {
-  try {
-    const product = await Products.find();
-    res.send(product);
-  } catch (e) {
-    res.send(`An error Ocuured during fetching products : ${e}`);
+const getAllProducts = asyncErrorHandler(async function (req, res, next) {
+  const product = await Products.find();
+  if (!product) {
+    const err = new ErrorClass("products Not Found ", 404);
+    return next(err);
   }
-}
+
+  res.status(200).json({
+    status: "success",
+    data: product,
+  });
+});
 
 /// Get a specific Product ///
 
-async function getProductById(req, res) {
+const getProductById = asyncErrorHandler(async function (req, res, next) {
   const id = req.params.id;
-  try {
-    const currentProduct = await Products.findOne({ _id: id });
-    res.send(currentProduct);
-  } catch (error) {
-    res.send(error);
+
+  const currentProduct = await Products.findOne({ _id: id });
+  if (!currentProduct) {
+    const error = new ErrorClass("product is not found", 404);
+    return next(error);
   }
-}
+  res.status(200).json({
+    status: "success",
+    data: currentProduct,
+  });
+});
 
 /// Get Product By category ///
 
-async function getProductByCategory(req, res) {
+const getProductByCategory = asyncErrorHandler(async function (req, res, next) {
   const id = req.params.categoryname;
-  try {
-    const category = await Products.find({ category: id });
-    res.send(category);
-  } catch (e) {
-    res.send(e);
+  const category = await Products.find({ category: id });
+  if (category.length === 0) {
+    const err = new ErrorClass("category Not Found ", 404);
+    return next(err);
   }
-}
+  res.status(200).json({
+    status: "success",
+    data: category,
+  });
+});
 
 /// Add product to Cart ///
 
-async function addToCart(req, res) {
+const addToCart = async function (req, res, next) {
   const productId = req.params.id;
-  try {
-    const product = await Products.findOne({ _id: productId });
+  const product = await Products.findOne({ _id: productId });
 
-    if (!product) {
-      return res.status(404).send("Product not found");
-    }
-    const currentUser = await Users.findOne({ _id: req.user.id });
-
-    const result = currentUser.cart.filter(
-      (item) => item._id.toString() === productId
-    );
-    if (result.length === 0) {
-      const update = await Users.updateOne(
-        { _id: req.user.id },
-        { $push: { cart: product._id } }
-      );
-      if (update.modifiedCount === 1) {
-        res.sendStatus(200);
-      } else {
-        res.send("Not updated");
-      }
-    } else {
-      res.send("item already exists in cart ");
-    }
-  } catch (e) {
-    res.status(500).send(e);
+  if (!product) {
+    const err = new ErrorClass("Product is not Found ", 404);
+    return next(err);
   }
-}
+  const currentUser = await Users.findOne({ username: req.user.username });
+
+  const result = currentUser.cart.filter(
+    (item) => item._id.toString() === productId
+  );
+  if (result.length === 0) {
+    await Users.updateOne(
+      { username: req.user.username },
+      { $push: { cart: product._id } }
+    );
+    res.status(200).json({
+      status: "success",
+      message: "item added to cart succesfully",
+    });
+  } else {
+    const err = new ErrorClass("item already Exists in Your cart ", 400);
+    return next(err);
+  }
+};
 
 /// view cart ///
 
-async function viewCart(req, res) {
-  try {
-    const userdetail = await Users.findOne({ _id: req.user.id }).populate("cart")
-    res.send(userdetail.cart);
-  } catch (e) {
-    res.status(500).send(e);
-  }
-}
-
+const viewCart = asyncErrorHandler(async function (req, res) {
+  const userdetail = await Users.findOne({
+    username: req.user.username,
+  }).populate("cart");
+  res.status(200).json({
+    status: "success",
+    data: userdetail.cart,
+  });
+});
 /// Add to wish list ///
 
-async function addToWishist(req, res) {
+const addToWishist = asyncErrorHandler(async function (req, res, next) {
   const id = req.params.id;
-  try {
-    const product = await Products.findOne({ _id: id });
-    const currentUser = await Users.findOne({ _id: req.user.id });
-    const result = currentUser.wishlist.filter(
-      (item) => item._id.toString() === id
-    );
-    if (result.length === 0) {
-      const updateCart = await Users.updateOne(
-        { _id: req.user.id },
-        { $push: { wishlist: product } }
-      );
-      res.send(updateCart);
-    } else {
-      res.send("item alerady in the wishlist");
-    }
-  } catch (error) {
-    res.send(error);
-  }
-}
 
+  const product = await Products.findOne({ _id: id });
+  if (!product) {
+    const err = new ErrorClass("Product is not found ", 404);
+    return next(err);
+  }
+  const currentUser = await Users.findOne({ username: req.user.username });
+  const result = currentUser.wishlist.filter(
+    (item) => item._id.toString() === id
+  );
+  if (result.length === 0) {
+    await Users.updateOne(
+      { username: req.user.username },
+      { $push: { wishlist: product } }
+    );
+    res.status(200).json({ status: "success" });
+  } else {
+    const err = new ErrorClass("Product already exists in wishlist ", 400);
+    return next(err);
+  }
+});
 /// View  Wishlist ///
 
-async function viewWishList(req, res) {
-  try {
-    const user = await Users.findOne({ _id: req.user.id });
-    res.send(user.wishlist);
-  } catch (e) {
-    console.log(e);
-  }
-}
+const viewWishList = asyncErrorHandler(async function (req, res) {
+  const user = await Users.findOne({ username: req.user.username }).populate(
+    "wishlist"
+  );
 
+  res.status(200).json({ status: "success", data: user.wishlist });
+});
 /// Delete From Wishlist ///
 
-async function dltWishList(req, res) {
+const dltWishList = asyncErrorHandler(async function (req, res,next) {
   const id = req.params.id;
-  try {
-    const user = await Users.findOne({ _id: req.user.id });
-    const index = user.wishlist.findIndex((item) => item._id.toString() === id);
-    console.log(index)
-    if(index!==-1){
-      user.wishlist.splice(index, 1);
-      await user.save();
-      res.status(200).send("item deleted successfully");
-    }else(
-      res.send("item does not exist in wishlist")
-    )
-  } catch (error) {
-    res.send(error);
+
+  const user = await Users.findOne({ username: req.user.username });
+  const index = user.wishlist.findIndex((item) => item._id.toString() === id);
+  console.log(index);
+  if (index !== -1) {
+    user.wishlist.splice(index, 1);
+    await user.save();
+    res
+      .status(200)
+      .json({ message: "item deleted successfully", status: "success" });
+  }else {
+    const err = new ErrorClass("Item do not exists in Your wishlist ", 404);
+return next(err)
   }
+});
+/// global incorrect route ///
+function invalidRoute(req, res, next) {
+  const err = new ErrorClass("the page u are requesting is not found ", 404);
+  // err.status = "fail ";
+  // err.statusCode = 404;
+  next(err);
 }
 
 module.exports = {
@@ -144,7 +160,5 @@ module.exports = {
   dltWishList,
   viewCart,
   viewWishList,
+  invalidRoute,
 };
-
-
-
