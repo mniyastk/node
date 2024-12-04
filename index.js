@@ -7,12 +7,13 @@ const adminRoute = require('./routes/adminRoute');
 const errorHandler = require("./middleware/errorHandler");
 const app = express();
 mongoose
-  .connect("mongodb+srv://niyas75tk:sc6wk0Q3xmdjqXgK@cluster0.edtkkwg.mongodb.net/?tls=true")
+  .connect("mongodb+srv://niyas75tk:KdgaJIf2gbei5mqn@cluster0.edtkkwg.mongodb.net/petshop")
   .then(() => console.log("connected  to mongodb"))
   .catch(() => console.log("error while conecting to mongodb"));
 app.use(express.json());
 app.use(userRoute);
 app.use(adminRoute);
+
 app.use(productRoute);
 app.use(errorHandler)
 
