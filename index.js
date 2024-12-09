@@ -1,11 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
-
+const cors = require("cors");
 const productRoute = require("./routes/productsRoute");
 const userRoute = require("./routes/userRoutes");
 const adminRoute = require('./routes/adminRoute');
 const errorHandler = require("./middleware/errorHandler");
+
 const app = express();
+app.use(cors());
 mongoose
   .connect("mongodb+srv://niyas75tk:KdgaJIf2gbei5mqn@cluster0.edtkkwg.mongodb.net/petshop")
   .then(() => console.log("connected  to mongodb"))
